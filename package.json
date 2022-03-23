@@ -9,13 +9,11 @@
   "keywords": [],
   "author": "",
   "license": "MIT",
-  "main": "src/index.ts",
   "engineStrict": true,
   "engines": {
     "node": ">=16"
   },
-  "dependencies": {
-  },
+  "dependencies": {},
   "devDependencies": {
     "@commitlint/cli": "^16.2.3",
     "@commitlint/config-conventional": "^16.2.1",
@@ -29,17 +27,22 @@
     "prettier": "^2.6.0"
   },
   "lint-staged": {
-    "*.js": ["eslint", "prettier --write"]
+    "*.js": [
+      "eslint",
+      "prettier --write"
+    ]
   },
   "commitlint": {
     "extends": [
       "@commitlint/config-conventional"
     ]
   },
+  "source": "src/index.html",
   "scripts": {
     "prepare": "[ \"$NODE_ENV\" = production ] && exit 0; is-ci || husky install",
     "lint": "lint-staged",
     "lint:all": "eslint ./ --ext .js",
-    "test": "echo \"lol\""
+    "test": "echo \"lol\"",
+    "start": "parcel"
   }
 }
