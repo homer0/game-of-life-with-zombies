@@ -1,0 +1,45 @@
+{
+  "name": "game-of-life",
+  "version": "1.0.0",
+  "description": "",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/homer0/game-of-life.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "main": "src/index.ts",
+  "engineStrict": true,
+  "engines": {
+    "node": ">=16"
+  },
+  "dependencies": {
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^16.2.3",
+    "@commitlint/config-conventional": "^16.2.1",
+    "@homer0/eslint-plugin": "^9.0.0",
+    "@homer0/prettier-config": "^1.1.1",
+    "eslint": "^8.11.0",
+    "husky": "^7.0.4",
+    "is-ci": "^3.0.1",
+    "lint-staged": "^12.3.7",
+    "parcel": "^2.4.0",
+    "prettier": "^2.6.0"
+  },
+  "lint-staged": {
+    "*.js": ["eslint", "prettier --write"]
+  },
+  "commitlint": {
+    "extends": [
+      "@commitlint/config-conventional"
+    ]
+  },
+  "scripts": {
+    "prepare": "[ \"$NODE_ENV\" = production ] && exit 0; is-ci || husky install",
+    "lint": "lint-staged",
+    "lint:all": "eslint ./ --ext .js",
+    "test": "echo \"lol\""
+  }
+}
