@@ -57,6 +57,12 @@ export const generateContext = (): Context => {
       element: loading,
       visible: false,
     },
+    controls: {
+      playPause: getElement<HTMLButtonElement>('playPause'),
+      reset: getElement<HTMLButtonElement>('reset'),
+      addRandom: getElement<HTMLButtonElement>('addRandom'),
+      speed: getElement<HTMLInputElement>('speed'),
+    },
     rows,
     columns,
     cellSize: CELL_SIZE,
@@ -145,7 +151,7 @@ export const getNextCell = (cell: Cell, { alive, undead }: NeighborsByStatus): C
   return nextCell();
 };
 
-export const generateGrids = (context: Context): [Grid, Grid] => {
+export const generateGrids = (context: Context): GridsByType => {
   const { rows, columns } = context;
   const grid = new Array(rows).fill('').map(() =>
     new Array(columns).fill('').map(
@@ -158,7 +164,10 @@ export const generateGrids = (context: Context): [Grid, Grid] => {
   );
   const clone = grid.map((row) => row.map((cell) => ({ ...cell })));
 
-  return [grid, clone];
+  return {
+    main: grid,
+    clone,
+  };
 };
 
 const getNeighbors = (grid: Grid, row: number, column: number): Cell[] => {
@@ -294,4 +303,100 @@ export const magic = (context: Context, grids: GridsByType): Grid => {
   context.generation++;
   context.grid = context.grid === 'main' ? 'clone' : 'main';
   return nextGrid;
+};
+
+export const getIntervalFn =
+  (context: Context, grids: GridsByType): (() => void) =>
+  () => {
+    const grid = magic(context, grids);
+    draw(context, grid);
+  };
+
+export const getIntervalSpeed = (context: Context): number => {
+  const { speed } = context.controls;
+  return Math.max((10 - Number(speed.value)) * 100, 50);
+};
+
+export const setupSlider = (context: Context, intervalFn: () => void): void => {
+  const { speed } = context.controls;
+  speed.addEventListener('change', () => {
+    if (context.interval) {
+      clearInterval(context.interval);
+      const speed = getIntervalSpeed(context);
+      context.interval = setInterval(intervalFn, speed);
+    }
+  });
+};
+
+export const setupPlayPause = (context: Context, intervalFn: () => void): void => {
+  const { playPause } = context.controls;
+  playPause.addEventListener('click', () => {
+    if (context.interval) {
+      clearInterval(context.interval);
+      context.interval = undefined;
+      playPause.innerText = 'Resume';
+    } else {
+      intervalFn();
+      const speed = getIntervalSpeed(context);
+      context.interval = setInterval(intervalFn, speed);
+      playPause.innerText = 'Pause';
+    }
+  });
+};
+
+export const setupReset = (context: Context, onReset: () => void): void => {
+  const { reset, playPause } = context.controls;
+  reset.addEventListener('click', () => {
+    if (context.interval) {
+      clearInterval(context.interval);
+    }
+    context.generation = 0;
+    playPause.innerText = 'Pause';
+    onReset();
+  });
+};
+
+export const setupRandom = (context: Context, grids: GridsByType) => {
+  const { addRandom } = context.controls;
+  addRandom.addEventListener('click', () => {
+    let cellToOverwrite: Cell | undefined;
+    const grid = grids[context.grid];
+    const { rows, columns } = context;
+    while (!cellToOverwrite) {
+      const randomRow = Math.floor(Math.random() * rows);
+      const randomColumn = Math.floor(Math.random() * columns);
+      const randomCell = grid?.[randomRow]?.[randomColumn];
+      if (randomCell && randomCell.status === 'dead') {
+        cellToOverwrite = randomCell;
+      }
+    }
+
+    if (Math.random() < 0.7) {
+      cellToOverwrite.status = 'alive';
+      cellToOverwrite.years = 0;
+    } else {
+      cellToOverwrite.status = 'undead';
+      cellToOverwrite.undeadCount = 0;
+    }
+
+    if (!context.interval) {
+      draw(context, grid);
+    }
+  });
+};
+
+export const createIntervalAndControls = (context: Context, grids: GridsByType) => {
+  const intervalFn = getIntervalFn(context, grids);
+  draw(context, grids[context.grid]);
+  context.interval = setInterval(intervalFn, getIntervalSpeed(context));
+  setupSlider(context, intervalFn);
+  setupPlayPause(context, intervalFn);
+  setupRandom(context, grids);
+  setupReset(context, () => {
+    const newGrids = generateGrids(context);
+    grids.main = newGrids.main;
+    grids.clone = newGrids.clone;
+    draw(context, grids.main);
+    context.interval = setInterval(intervalFn, getIntervalSpeed(context));
+  });
 };

@@ -1,21 +1,16 @@
-import { draw, generateContext, generateGrids, setupUI, magic } from './fns';
-import { GridsByType } from './types';
+import {
+  draw,
+  generateContext,
+  generateGrids,
+  setupUI,
+  createIntervalAndControls,
+} from './fns';
 
 const run = () => {
   let context = generateContext();
   setupUI(context);
-  const [gridOne, gridTwo] = generateGrids(context);
-  const grids: GridsByType = {
-    main: gridOne,
-    clone: gridTwo,
-  };
-
-  draw(context, grids[context.grid]);
-  setInterval(() => {
-    const grid = magic(context, grids);
-    draw(context, grid);
-    console.log('GENERATION', context.generation);
-  }, 500);
+  let grids = generateGrids(context);
+  createIntervalAndControls(context, grids);
 };
 
 document.addEventListener('DOMContentLoaded', run);

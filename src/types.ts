@@ -34,11 +34,18 @@ export type Context = {
     element: HTMLDivElement;
     visible: boolean;
   };
+  controls: {
+    playPause: HTMLButtonElement;
+    reset: HTMLButtonElement;
+    addRandom: HTMLButtonElement;
+    speed: HTMLInputElement;
+  };
   rows: number;
   columns: number;
   cellSize: number;
   generation: number;
   grid: GridType;
+  interval?: NodeJS.Timer;
 };
 
 export type TileType =
