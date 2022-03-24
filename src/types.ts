@@ -27,6 +27,9 @@ export type Context = {
     element: HTMLDivElement;
     width: number;
   };
+  tileset: {
+    element: HTMLImageElement;
+  };
   loading: {
     element: HTMLDivElement;
     visible: boolean;
@@ -37,3 +40,13 @@ export type Context = {
   generation: number;
   grid: GridType;
 };
+
+export type TileType =
+  | 'GRASS'
+  | 'DIRT'
+  | 'TALL_GRASS'
+  | 'ZOMBIE'
+  | 'DYING_ZOMBIE'
+  | 'ALIVE'
+  | 'BABY';
+export type TileCoordinates = { x: number; y: number };

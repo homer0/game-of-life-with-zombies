@@ -4,18 +4,37 @@ import {
   UNDEAD_COUNT_LIMIT,
   MAX_YEARS,
   COLORS,
+  SCENARIO_PADDING,
+  TILESET_CORDS,
 } from './consts';
 import { getElement, getScreenSize } from './utils';
-import type { Cell, Grid, Context, NeighborsByStatus, GridsByType } from './types';
+import type {
+  Cell,
+  Grid,
+  Context,
+  NeighborsByStatus,
+  GridsByType,
+  TileCoordinates,
+} from './types';
 
 export const generateContext = (): Context => {
   const scenario = getElement<HTMLDivElement>('scenario');
   const sidebar = getElement<HTMLDivElement>('sidebar');
   const loading = getElement<HTMLDivElement>('loading');
   const canvas = getElement<HTMLCanvasElement>('canvas');
+  const tileset = getElement<HTMLImageElement>('tileset');
+  const tilesetImage = new Image();
+  tilesetImage.src = tileset.src;
   const screenSize = getScreenSize();
+  const padding = SCENARIO_PADDING * 2;
   const scenarioWidth = screenSize.width - SIDEBAR_WIDTH;
   const scenarioHeight = screenSize.height;
+  let canvasWidth = scenarioWidth - padding;
+  let canvasHeight = scenarioHeight - padding;
+  const rows = Math.floor(canvasHeight / CELL_SIZE);
+  canvasHeight = rows * CELL_SIZE;
+  const columns = Math.floor(canvasWidth / CELL_SIZE);
+  canvasWidth = columns * CELL_SIZE;
   return {
     scenario: {
       element: scenario,
@@ -24,19 +43,22 @@ export const generateContext = (): Context => {
     },
     canvas: {
       element: canvas,
-      width: scenarioWidth,
-      height: scenarioHeight,
+      width: canvasWidth,
+      height: canvasHeight,
     },
     sidebar: {
       element: sidebar,
       width: SIDEBAR_WIDTH,
     },
+    tileset: {
+      element: tilesetImage,
+    },
     loading: {
       element: loading,
       visible: false,
     },
-    rows: Math.floor(scenarioWidth / CELL_SIZE),
-    columns: Math.floor(scenarioHeight / CELL_SIZE),
+    rows,
+    columns,
     cellSize: CELL_SIZE,
     generation: 1,
     grid: 'main',
@@ -50,7 +72,6 @@ export const toggleLoading = (context: Context, visible: boolean): void => {
 
 export const setupUI = (context: Context): void => {
   const { scenario, sidebar, canvas } = context;
-  scenario.element.style.width = `${scenario.width}px`;
   scenario.element.style.height = `${scenario.height}px`;
   sidebar.element.style.width = `${sidebar.width}px`;
   canvas.element.setAttribute('width', `${canvas.width}`);
@@ -206,8 +227,31 @@ export const getCellColor = (cell: Cell): string => {
   return COLORS.ALIVE;
 };
 
+export const getTileCoordinatesForCell = (
+  context: Context,
+  cell: Cell,
+): TileCoordinates => {
+  if (cell.status === 'dead') {
+    return TILESET_CORDS.GRASS;
+  }
+
+  if (cell.status === 'undead') {
+    if (cell.undeadCount > UNDEAD_COUNT_LIMIT / 2) {
+      return TILESET_CORDS.DYING_ZOMBIE;
+    }
+
+    return TILESET_CORDS.ZOMBIE;
+  }
+
+  if (cell.years === 0) {
+    return TILESET_CORDS.BABY;
+  }
+
+  return TILESET_CORDS.ALIVE;
+};
+
 export const draw = (context: Context, grid: Grid): void => {
-  const { canvas, cellSize } = context;
+  const { canvas, tileset, cellSize } = context;
   const { width, height } = canvas;
   const { rows, columns } = context;
   const ctx = canvas.context;
@@ -220,10 +264,18 @@ export const draw = (context: Context, grid: Grid): void => {
       const cell = grid[r][c];
       const x = c * cellSize;
       const y = r * cellSize;
-      ctx.fillStyle = '#000';
-      ctx.fillRect(x, y, cellSize, cellSize);
-      ctx.fillStyle = getCellColor(cell);
-      ctx.fillRect(x + 1, y + 1, cellSize - 2, cellSize - 2);
+      const coords = getTileCoordinatesForCell(context, cell);
+      ctx.drawImage(
+        tileset.element,
+        coords.x,
+        coords.y,
+        cellSize,
+        cellSize,
+        x,
+        y,
+        cellSize,
+        cellSize,
+      );
     }
   }
 };

@@ -43,6 +43,6 @@
     "lint": "lint-staged",
     "lint:all": "eslint ./ --ext .js",
     "test": "echo \"lol\"",
-    "start": "parcel"
+    "start": "parcel --no-cache"
   }
 }
