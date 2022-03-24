@@ -3,7 +3,6 @@ import {
   CELL_SIZE,
   UNDEAD_COUNT_LIMIT,
   MAX_YEARS,
-  COLORS,
   SCENARIO_PADDING,
   TILESET_CORDS,
 } from './consts';
@@ -23,6 +22,7 @@ export const generateContext = (): Context => {
   const loading = getElement<HTMLDivElement>('loading');
   const canvas = getElement<HTMLCanvasElement>('canvas');
   const tileset = getElement<HTMLImageElement>('tileset');
+  const end = getElement<HTMLImageElement>('end');
   const tilesetImage = new Image();
   tilesetImage.src = tileset.src;
   const screenSize = getScreenSize();
@@ -40,6 +40,10 @@ export const generateContext = (): Context => {
       element: scenario,
       width: scenarioWidth,
       height: scenarioHeight,
+    },
+    end: {
+      element: end,
+      visible: false,
     },
     canvas: {
       element: canvas,
@@ -66,7 +70,32 @@ export const generateContext = (): Context => {
     rows,
     columns,
     cellSize: CELL_SIZE,
-    generation: 1,
+    stats: {
+      generation: {
+        element: getElement<HTMLSpanElement>('generation'),
+        value: 0,
+      },
+      cellsBorn: {
+        element: getElement<HTMLSpanElement>('cellsBorn'),
+        value: 0,
+      },
+      cellsDead: {
+        element: getElement<HTMLSpanElement>('cellsDead'),
+        value: 0,
+      },
+      miracleCells: {
+        element: getElement<HTMLSpanElement>('miracleCells'),
+        value: 0,
+      },
+      zombiesBorn: {
+        element: getElement<HTMLSpanElement>('zombiesBorn'),
+        value: 0,
+      },
+      zombiesDead: {
+        element: getElement<HTMLSpanElement>('zombiesDead'),
+        value: 0,
+      },
+    },
     grid: 'main',
   };
 };
@@ -93,14 +122,24 @@ const getCellModifier =
     ...cell,
   });
 
-export const getNextCell = (cell: Cell, { alive, undead }: NeighborsByStatus): Cell => {
+export const getNextCell = (
+  context: Context,
+  cell: Cell,
+  { alive, undead }: NeighborsByStatus,
+): Cell => {
   const nextCell = getCellModifier(cell);
-  if (
-    cell.status === 'dead' &&
-    undead === 0 &&
-    (alive === 3 || (alive === 2 && Math.random() < 0.4))
-  ) {
-    return nextCell({ status: 'alive', years: 0 });
+  const { stats } = context;
+  if (cell.status === 'dead' && undead === 0) {
+    if (alive === 3) {
+      stats.cellsBorn.value += 1;
+      return nextCell({ status: 'alive', years: 0 });
+    }
+
+    if (alive === 2 && Math.random() < 0.4) {
+      stats.cellsBorn.value += 1;
+      stats.miracleCells.value += 1;
+      return nextCell({ status: 'alive', years: 0 });
+    }
   }
 
   if (cell.status === 'alive') {
@@ -109,6 +148,7 @@ export const getNextCell = (cell: Cell, { alive, undead }: NeighborsByStatus): C
       (undead === 1 && Math.random() < 0.5) ||
       (undead && alive && undead === alive && Math.random() < 0.1)
     ) {
+      stats.zombiesBorn.value += 1;
       return nextCell({ status: 'undead' });
     }
 
@@ -119,9 +159,13 @@ export const getNextCell = (cell: Cell, { alive, undead }: NeighborsByStatus): C
       nextYears > MAX_YEARS ||
       (undead && alive && alive > undead && Math.random() < 0.3)
     ) {
-      return nextCell({
-        status: Math.random() < 0.05 ? 'undead' : 'dead',
-      });
+      if (Math.random() < 0.05) {
+        stats.zombiesBorn.value += 1;
+        return nextCell({ status: 'undead' });
+      }
+
+      stats.cellsDead.value += 1;
+      return nextCell({ status: 'dead' });
     }
 
     return nextCell({ status: 'alive', years: nextYears });
@@ -129,6 +173,7 @@ export const getNextCell = (cell: Cell, { alive, undead }: NeighborsByStatus): C
 
   if (cell.status === 'undead') {
     if (undead && alive && undead > alive) {
+      stats.zombiesBorn.value += 1;
       return nextCell({ status: 'undead', undeadCount: 0 });
     }
 
@@ -137,11 +182,13 @@ export const getNextCell = (cell: Cell, { alive, undead }: NeighborsByStatus): C
       (alive === 1 && Math.random() < 0.5) ||
       (alive && undead && alive > undead && Math.random() < 0.7)
     ) {
+      stats.zombiesDead.value += 1;
       return nextCell({ status: 'dead', undeadCount: 0 });
     }
 
     const nextCount = cell.undeadCount + 1;
     if (cell.undeadCount > UNDEAD_COUNT_LIMIT - 1) {
+      stats.zombiesDead.value += 1;
       return nextCell({ status: 'dead', undeadCount: 0 });
     }
 
@@ -212,34 +259,14 @@ const getNeighborsByStatus = (
     } as NeighborsByStatus,
   );
 
-export const getCellColor = (cell: Cell): string => {
-  const { status, years, undeadCount } = cell;
-  if (status === 'dead') {
-    return COLORS.DEAD;
-  }
-
-  if (status === 'undead') {
-    if (undeadCount === 0) {
-      return COLORS.NEW_ZOMBIE;
-    }
-    if (undeadCount > UNDEAD_COUNT_LIMIT / 2) {
-      return COLORS.DYING_ZOMBIE;
-    }
-
-    return COLORS.ZOMBIE;
-  }
-
-  if (years === 0) {
-    return COLORS.BABY;
-  }
-
-  return COLORS.ALIVE;
-};
-
 export const getTileCoordinatesForCell = (
-  context: Context,
   cell: Cell,
+  ended: boolean = false,
 ): TileCoordinates => {
+  if (ended) {
+    return TILESET_CORDS.END;
+  }
+
   if (cell.status === 'dead') {
     return TILESET_CORDS.GRASS;
   }
@@ -259,21 +286,30 @@ export const getTileCoordinatesForCell = (
   return TILESET_CORDS.ALIVE;
 };
 
-export const draw = (context: Context, grid: Grid): void => {
-  const { canvas, tileset, cellSize } = context;
+export const draw = (context: Context, grid: Grid, ended: boolean = false): void => {
+  const { canvas, tileset, cellSize, stats } = context;
   const { width, height } = canvas;
   const { rows, columns } = context;
   const ctx = canvas.context;
   if (!ctx) {
     throw Error('No canvas context');
   }
+  Object.values(stats).forEach((stat) => {
+    const value = `${stat.value}`.padStart(6, '0');
+    if (value.length > 6) {
+      stat.element.classList.add('overflow');
+      stat.element.innerText = 'overflow';
+    } else {
+      stat.element.innerText = value;
+    }
+  });
   ctx.clearRect(0, 0, width, height);
   for (let r = 0; r < rows; r++) {
     for (let c = 0; c < columns; c++) {
       const cell = grid[r][c];
       const x = c * cellSize;
       const y = r * cellSize;
-      const coords = getTileCoordinatesForCell(context, cell);
+      const coords = getTileCoordinatesForCell(cell, ended);
       ctx.drawImage(
         tileset.element,
         coords.x,
@@ -289,27 +325,39 @@ export const draw = (context: Context, grid: Grid): void => {
   }
 };
 
-export const magic = (context: Context, grids: GridsByType): Grid => {
+export const magic = (context: Context, grids: GridsByType): [Grid, number] => {
   const prevGrid = grids[context.grid];
   const nextGrid = grids[context.grid === 'main' ? 'clone' : 'main'];
+  let notDeadCells = 0;
   prevGrid.forEach((row, rowIndex) =>
     row.forEach((cell, cellIndex) => {
       const neighborsByStatus = getNeighborsByStatus(prevGrid, rowIndex, cellIndex);
-      const nextCell = getNextCell(cell, neighborsByStatus);
+      const nextCell = getNextCell(context, cell, neighborsByStatus);
       nextGrid[rowIndex][cellIndex] = nextCell;
+      if (nextCell.status !== 'dead') {
+        notDeadCells++;
+      }
     }),
   );
 
-  context.generation++;
+  context.stats.generation.value++;
   context.grid = context.grid === 'main' ? 'clone' : 'main';
-  return nextGrid;
+  return [nextGrid, notDeadCells];
 };
 
 export const getIntervalFn =
   (context: Context, grids: GridsByType): (() => void) =>
   () => {
-    const grid = magic(context, grids);
-    draw(context, grid);
+    const [grid, notDeadCells] = magic(context, grids);
+    const ended = notDeadCells === 0;
+    draw(context, grid, ended);
+    if (ended && context.interval) {
+      clearInterval(context.interval);
+      context.controls.playPause.disabled = true;
+      context.controls.addRandom.disabled = true;
+      context.end.element.style.display = 'block';
+      context.end.visible = true;
+    }
   };
 
 export const getIntervalSpeed = (context: Context): number => {
@@ -345,13 +393,25 @@ export const setupPlayPause = (context: Context, intervalFn: () => void): void =
 };
 
 export const setupReset = (context: Context, onReset: () => void): void => {
-  const { reset, playPause } = context.controls;
+  const {
+    stats,
+    end,
+    controls: { reset, playPause, addRandom },
+  } = context;
   reset.addEventListener('click', () => {
     if (context.interval) {
       clearInterval(context.interval);
     }
-    context.generation = 0;
+    Object.values(stats).forEach((stat) => {
+      stat.value = 0;
+      stat.element.classList.remove('overflow');
+    });
+    stats.generation.value = 1;
     playPause.innerText = 'Pause';
+    playPause.disabled = false;
+    addRandom.disabled = false;
+    end.element.style.display = 'none';
+    end.visible = false;
     onReset();
   });
 };
