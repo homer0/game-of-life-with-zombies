@@ -6,6 +6,8 @@ body {
   background-color: #2B2C2D;
   background-image: url(./assets/images/background.png);
   background-repeat: repeat;
+  font-family: 'Courier New', Courier, monospace;
+  color: #CCC;
 }
 
 #app {
@@ -113,5 +115,140 @@ body {
 }
 
 .sidebar-content {
-  max-width: 320px;
+  padding: 0 10px;
+  width: 100%;
+  box-sizing: border-box;
+  flex-grow: 1;
+}
+
+.list-title {
+  font-size: 25px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #749947;
+  width: 100%;
+}
+
+.stats, .controls {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 100%;
+}
+
+.stats li {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  font-size: 1.125rem;
+  padding: 2px 0;
+  font-weight: bold;
+}
+
+.stats-value {
+  display: block;
+  padding: 4px 10px 2px 10px;
+  border-radius: 4px;
+  background-color: rgba(0, 0, 0, 0.3);
+}
+
+.stats-value.overflow {
+  color: #749947;
+  text-transform: uppercase;
+}
+
+.buttons {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  padding: 10px 0;
+}
+
+.button {
+  font-family: inherit;
+  border-radius: 3px;
+  font-size: .9375rem;
+  border: 2px solid #1a1a1a;
+  background-color: rgba(0, 0, 0, 0.25);
+  padding: 4px 8px 3px 8px;
+  color: #CCC;
+  cursor: pointer;
+}
+
+.button:hover, .button:focus {
+  background-color: rgba(0, 0, 0, 0.4);
+  color: #FFF;
+  box-shadow: 0px 0px 5px rgba(255, 255, 255, 0.15);
+}
+
+.button[disabled] {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.speed-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  padding: 10px 0;
+}
+
+.speed-input-container {
+  flex-grow: 1;
+  padding-left: 10px;
+}
+
+.speed-input-container input {
+  width: 100%;
+}
+
+.footer {
+  padding: 10px 0;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.powered-by {
+  background-image: url(./assets/images/poweredby.svg);
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: contain;
+  font-size: 0;
+  text-indent: -2000px;
+  width: 100px;
+  height: 22px;
+  display: block;
+}
+
+.links {
+  display: flex;
+  flex-direction: row;
+  list-style: none;
+  margin: 0;
+  padding: 10px 0 0 0;
+  font-size: .8125rem;
+}
+
+.links li::after {
+  content: '-';
+  font-weight: bold;
+  display: inline-block;
+  padding: 0 10px;
+}
+
+.links li:last-child::after {
+  content: '';
+}
+
+.links a {
+  color: #CCC;
+  text-decoration: none;
+}
+
+.links a:hover, .links:focus {
+  color: #749947;
+  text-decoration: underline;
 }
